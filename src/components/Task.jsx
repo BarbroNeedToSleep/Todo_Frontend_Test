@@ -8,6 +8,7 @@ const Task = () => {
 
     // todo*: make this component functional by implementing state management and API calls
 
+    // NOTE (NtS): This was the thought you where looking at backend todos live at GET /api/todo, POST /api/todo etc.
     return (
         <div className="dashboard-layout">
             <Sidebar isOpen={false} onClose={() => {}} />
@@ -23,7 +24,7 @@ const Task = () => {
                         <div className="col-md-8 mx-auto">
                             <div className="card shadow-sm task-form-section">
                                 <div className="card-body">
-                                    <h2 className="card-title mb-4">Add New Task</h2>
+                                    <h2 className="card-title mb-4">Add New To-Do</h2>
                                     <form id="todoForm">
                                         <div className="mb-3">
                                             <label htmlFor="todoTitle" className="form-label">Title</label>

@@ -12,6 +12,7 @@ const Task = () => {
     const [description, setDescription] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [editingTodo, setEditingTodo] = useState(null);
+    const [personId, setPersonId] = useState("");
 
 
 
@@ -42,6 +43,7 @@ const Task = () => {
                     title,
                     description,
                     dueDate: dueDate || null,
+                    personId: personId ? Number(personId) : null,
                 });
             } else {
                 // CREATE
@@ -49,6 +51,7 @@ const Task = () => {
                     title,
                     description,
                     dueDate: dueDate || null,
+                    personId: personId ? Number(personId) : null,
                 });
 
                 setTodos((prev) => [...prev, newTodo]);
@@ -59,6 +62,7 @@ const Task = () => {
             setDescription("");
             setEditingTodo(null);
             setDueDate("");
+            setPersonId("");
 
         } catch (err) {
             console.error(err);
@@ -160,7 +164,12 @@ const Task = () => {
                                                 <label htmlFor="todoPerson" className="form-label">
                                                     Assign to Person
                                                 </label>
-                                                <select className="form-select" id="todoPerson">
+                                                <select
+                                                    className="form-select"
+                                                    id="todoPerson"
+                                                    value={personId}
+                                                    onChange={(e) => setPersonId(e.target.value)}
+                                                >
                                                     <option value="">
                                                         -- Select Person (Optional) --
                                                     </option>
@@ -246,10 +255,26 @@ const Task = () => {
                                                             )}
                                                             <div className="d-flex align-items-center flex-wrap">
                                                                 {todo.dueDate && (
-                                                                    <small className="text-muted me-2">
+                                                                    <small
+                                                                        className={
+                                                                            new Date(todo.dueDate) < new Date()
+                                                                                ? "text-danger me-2"   // overdue = red text
+                                                                                : "text-muted me-2"    // future = grey text
+                                                                        }
+                                                                    >
                                                                         <i className="bi bi-calendar-event"></i>{" "}
                                                                         Due: {todo.dueDate}
                                                                     </small>
+                                                                )}
+                                                                {todo.personId && (
+                                                                    <span className="badge bg-info me-2">
+                                                                        <i className="bi bi-person"></i>{" "}
+                                                                        {todo.personId === 1
+                                                                            ? "Mehrdad Javan"
+                                                                            : todo.personId === 2
+                                                                                ? "Simon Elbrink"
+                                                                                : `Person #${todo.personId}`}
+        </span>
                                                                 )}
                                                                 {todo.status && (
                                                                     <span className="badge bg-secondary me-2">
@@ -276,6 +301,11 @@ const Task = () => {
                                                                     setDueDate(
                                                                         todo.dueDate
                                                                             ? todo.dueDate.slice(0, 16)  // "2025-12-05T18:53"
+                                                                            : ""
+                                                                    );
+                                                                    setPersonId(
+                                                                        todo.personId
+                                                                            ? String(todo.personId)
                                                                             : ""
                                                                     );
                                                                 }} >

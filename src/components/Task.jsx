@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./Task.css";
 import Sidebar from "./Sidebar";
 import Header from "./Header.jsx";
-import { getTodos, createTodo, deleteTodo } from "../services/taskService";
+import { getTodos, createTodo, updateTodo, deleteTodo } from "../services/taskService";
 
 
 const Task = () => {
@@ -10,6 +10,8 @@ const Task = () => {
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [editingTodo, setEditingTodo] = useState(null);
+
 
 
     useEffect(() => {
@@ -27,28 +29,38 @@ const Task = () => {
         loadTodos();
     }, []);
 
-    const handleCreateTask = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
             setError("");
 
-            const newTodo = await createTodo({
-                title,
-                description,
-            });
+            if (editingTodo) {
+                // UPDATE via helper
+                await handleUpdateTodo(editingTodo, {
+                    title,
+                    description,
+                });
+            } else {
+                // CREATE
+                const newTodo = await createTodo({
+                    title,
+                    description,
+                });
 
-            // add new task to list
-            setTodos((prev) => [...prev, newTodo]);
+                setTodos((prev) => [...prev, newTodo]);
+            }
 
-            // clear form
+            // clear form + exit edit mode
             setTitle("");
             setDescription("");
+            setEditingTodo(null);
         } catch (err) {
             console.error(err);
-            setError("Could not create task.");
+            setError(editingTodo ? "Could not update task." : "Could not create task.");
         }
     };
+
 
     const handleDeleteTask = async (id) => {
         try {
@@ -63,7 +75,25 @@ const Task = () => {
         }
     };
 
+    const handleUpdateTodo = async (todo, updatedFields) => {
+        try {
+            setError("");
 
+            const updatedTodoData = {
+                ...todo,
+                ...updatedFields
+            };
+
+            const updated = await updateTodo(todo.id, updatedTodoData);
+
+            setTodos((prev) =>
+                prev.map((t) => (t.id === todo.id ? updated : t))
+            );
+        } catch (err) {
+            console.error(err);
+            setError("Could not update task.");
+        }
+    };
 
     return (
         <div className="dashboard-layout">
@@ -82,8 +112,8 @@ const Task = () => {
                             <div className="card shadow-sm task-form-section">
                                 <div className="card-body">
                                     <h2 className="card-title mb-4">Add New To-Do</h2>
-                                    <form id="todoForm" onSubmit={handleCreateTask}>
-                                        <div className="mb-3">
+                                    <form id="todoForm" onSubmit={handleSubmit}>
+                                    <div className="mb-3">
                                             <label htmlFor="todoTitle" className="form-label">
                                                 Title
                                             </label>
@@ -153,7 +183,7 @@ const Task = () => {
                                         <div className="d-grid gap-2 d-md-flex justify-content-md-end">
                                             <button type="submit" className="btn btn-primary">
                                                 <i className="bi bi-plus-lg me-2"></i>
-                                                Add Task
+                                                {editingTodo ? "Save Changes" : "Add Task"}
                                             </button>
                                         </div>
                                     </form>
@@ -216,8 +246,8 @@ const Task = () => {
                                                                 )}
                                                                 {todo.status && (
                                                                     <span className="badge bg-secondary me-2">
-                                    {todo.status}
-                                  </span>
+                                                                {todo.status}
+                                                                </span>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -232,7 +262,11 @@ const Task = () => {
                                                             <button
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="Edit"
-                                                                disabled
+                                                                onClick={() => {
+                                                                    setEditingTodo(todo);
+                                                                    setTitle(todo.title || "");
+                                                                    setDescription(todo.description || "");
+                                                                }}
                                                             >
                                                                 <i className="bi bi-pencil"></i>
                                                             </button>

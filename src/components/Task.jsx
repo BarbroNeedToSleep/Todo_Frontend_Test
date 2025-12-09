@@ -10,6 +10,7 @@ const Task = () => {
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [dueDate, setDueDate] = useState("");
     const [editingTodo, setEditingTodo] = useState(null);
 
 
@@ -40,12 +41,14 @@ const Task = () => {
                 await handleUpdateTodo(editingTodo, {
                     title,
                     description,
+                    dueDate: dueDate || null,
                 });
             } else {
                 // CREATE
                 const newTodo = await createTodo({
                     title,
                     description,
+                    dueDate: dueDate || null,
                 });
 
                 setTodos((prev) => [...prev, newTodo]);
@@ -55,6 +58,8 @@ const Task = () => {
             setTitle("");
             setDescription("");
             setEditingTodo(null);
+            setDueDate("");
+
         } catch (err) {
             console.error(err);
             setError(editingTodo ? "Could not update task." : "Could not create task.");
@@ -147,6 +152,8 @@ const Task = () => {
                                                     type="datetime-local"
                                                     className="form-control"
                                                     id="todoDueDate"
+                                                    value={dueDate}
+                                                    onChange={(e) => setDueDate(e.target.value)}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
@@ -266,8 +273,12 @@ const Task = () => {
                                                                     setEditingTodo(todo);
                                                                     setTitle(todo.title || "");
                                                                     setDescription(todo.description || "");
-                                                                }}
-                                                            >
+                                                                    setDueDate(
+                                                                        todo.dueDate
+                                                                            ? todo.dueDate.slice(0, 16)  // "2025-12-05T18:53"
+                                                                            : ""
+                                                                    );
+                                                                }} >
                                                                 <i className="bi bi-pencil"></i>
                                                             </button>
                                                             <button

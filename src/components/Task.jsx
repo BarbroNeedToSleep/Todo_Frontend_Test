@@ -104,6 +104,25 @@ const Task = () => {
         }
     };
 
+    const handleToggleComplete = async (todo) => {
+        try {
+            setError("");
+
+            const updated = await updateTodo(todo.id, {
+                ...todo,
+                completed: !todo.completed
+            });
+
+            setTodos((prev) =>
+                prev.map((t) => (t.id === todo.id ? updated : t))
+            );
+        } catch (err) {
+            console.error(err);
+            setError("Could not update completed status.");
+        }
+    };
+
+
     return (
         <div className="dashboard-layout">
             <Sidebar isOpen={false} onClose={() => {}} />
@@ -274,23 +293,29 @@ const Task = () => {
                                                                             : todo.personId === 2
                                                                                 ? "Simon Elbrink"
                                                                                 : `Person #${todo.personId}`}
-        </span>
-                                                                )}
-                                                                {todo.status && (
-                                                                    <span className="badge bg-secondary me-2">
-                                                                {todo.status}
-                                                                </span>
-                                                                )}
+                                                                            </span>
+                                                                            )}
+                                                                            <span
+                                                                        className={
+                                                                        todo.completed
+                                                                            ? "badge bg-success me-2"
+                                                                            : "badge bg-warning text-dark me-2"
+                                                                            }
+                                                                            >
+                                                                            {todo.completed ? "Completed" : "Pending"}
+                                                                        </span>
+
                                                             </div>
                                                         </div>
                                                         <div className="btn-group ms-3">
                                                             <button
                                                                 className="btn btn-outline-success btn-sm"
-                                                                title="Complete"
-                                                                disabled
+                                                                title={todo.completed ? "Mark as Not Completed" : "Mark as Completed"}
+                                                                onClick={() => handleToggleComplete(todo)}
                                                             >
                                                                 <i className="bi bi-check-lg"></i>
                                                             </button>
+
                                                             <button
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="Edit"

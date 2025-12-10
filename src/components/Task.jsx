@@ -16,6 +16,9 @@ const Task = () => {
     const [files, setFiles] = useState([]);
     const fileInputRef = useRef(null);
 
+    const [filterMode, setFilterMode] = useState("all");   // all | overdue | completed | pending | mehrdad | simon
+    const [sortMode, setSortMode] = useState("none");      // none | title-asc | due-asc
+
 
 
     useEffect(() => {
@@ -128,10 +131,16 @@ const Task = () => {
         try {
             setError("");
 
-            const updated = await updateTodo(todo.id, {
-                ...todo,
-                completed: !todo.completed
-            });
+            // Build a minimal payload the backend understands
+            const payload = {
+                title: todo.title,
+                description: todo.description,
+                dueDate: todo.dueDate || null,
+                personId: todo.personId ?? null,
+                completed: !todo.completed, // 👈 only field we actually change
+            };
+
+            const updated = await updateTodo(todo.id, payload);
 
             setTodos((prev) =>
                 prev.map((t) => (t.id === todo.id ? updated : t))
@@ -141,6 +150,64 @@ const Task = () => {
             setError("Could not update completed status.");
         }
     };
+
+
+
+
+    const now = new Date();
+
+// start from all todos
+    let displayedTodos = [...todos];
+
+// 1) FILTER
+    displayedTodos = displayedTodos.filter((todo) => {
+        const hasDue = !!todo.dueDate;
+        const dueTime = hasDue ? new Date(todo.dueDate).getTime() : null;
+
+        switch (filterMode) {
+            case "overdue":
+                // has a due date, in the past, and not completed
+                return hasDue && dueTime < now.getTime() && !todo.completed;
+            case "completed":
+                return todo.completed === true;
+            case "pending":
+                return !todo.completed;
+            case "mehrdad":
+                return todo.personId === 1;
+            case "simon":
+                return todo.personId === 2;
+            case "all":
+            default:
+                return true;
+        }
+    });
+
+// 2) SORT
+    displayedTodos.sort((a, b) => {
+        if (sortMode === "title-asc") {
+            return (a.title || "").localeCompare(b.title || "");
+        }
+
+        if (sortMode === "title-desc") {
+            return (b.title || "").localeCompare(a.title || "");
+        }
+
+        if (sortMode === "due-asc") {
+            const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
+            const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
+            return aTime - bTime;
+        }
+
+        if (sortMode === "due-desc") {
+            const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.NEGATIVE_INFINITY;
+            const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.NEGATIVE_INFINITY;
+            return bTime - aTime;
+        }
+
+        // "none" or unknown → keep original order
+        return 0;
+    });
+
 
 
     return (
@@ -261,22 +328,102 @@ const Task = () => {
                             </div>
 
                             <div className="card shadow-sm tasks-list mt-4">
-                                <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                                    <h5 className="card-title mb-0">Tasks</h5>
-                                    <div className="btn-group">
-                                        <button
-                                            className="btn btn-outline-secondary btn-sm"
-                                            title="Filter"
-                                        >
-                                            <i className="bi bi-funnel"></i>
-                                        </button>
-                                        <button
-                                            className="btn btn-outline-secondary btn-sm"
-                                            title="Sort"
-                                        >
-                                            <i className="bi bi-sort-down"></i>
-                                        </button>
-                                    </div>
+                                    <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                                        <h5 className="card-title mb-0">Tasks</h5>
+
+                                        <div className="btn-group">
+                                            {/* Filter dropdown */}
+                                            <div className="dropdown me-1">
+                                                <button
+                                                    className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                                    type="button"
+                                                    id="filterDropdown"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false"
+                                                    title={`Filter: ${filterMode}`}
+                                                >
+                                                    <i className="bi bi-funnel"></i>
+                                                </button>
+                                                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("all")}>
+                                                            All tasks
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("overdue")}>
+                                                            Overdue
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("completed")}>
+                                                            Completed
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("pending")}>
+                                                            Pending
+                                                        </button>
+                                                    </li>
+                                                    <li><hr className="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("mehrdad")}>
+                                                            Assigned to Mehrdad
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setFilterMode("simon")}>
+                                                            Assigned to Simon
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            {/* Sort dropdown */}
+                                            <div className="dropdown">
+                                                <button
+                                                    className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                                    type="button"
+                                                    id="sortDropdown"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false"
+                                                    title={`Sort: ${sortMode}`}
+                                                >
+                                                    <i className="bi bi-sort-down"></i>
+                                                </button>
+                                                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdown">
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setSortMode("none")}>
+                                                            Default order
+                                                        </button>
+                                                    </li>
+                                                    <li><hr className="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setSortMode("title-asc")}>
+                                                            Title A → Z
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setSortMode("title-desc")}>
+                                                            Title Z → A
+                                                        </button>
+                                                    </li>
+                                                    <li><hr className="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setSortMode("due-asc")}>
+                                                            Due date: earliest first
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button className="dropdown-item" onClick={() => setSortMode("due-desc")}>
+                                                            Due date: latest first
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+
                                 </div>
                                 <div className="card-body">
                                     {error && (
@@ -285,11 +432,12 @@ const Task = () => {
                                         </div>
                                     )}
 
-                                    {todos.length === 0 ? (
+                                    {displayedTodos.length === 0 ? (
                                         <p className="text-muted mb-0">No tasks found.</p>
                                     ) : (
                                         <div className="list-group">
-                                            {todos.map((todo) => (
+                                            {displayedTodos.map((todo) => (
+
                                                 <div
                                                     key={todo.id}
                                                     className="list-group-item list-group-item-action"

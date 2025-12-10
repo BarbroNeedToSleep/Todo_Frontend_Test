@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./Task.css";
 import Sidebar from "./Sidebar";
 import Header from "./Header.jsx";
@@ -13,6 +13,8 @@ const Task = () => {
     const [dueDate, setDueDate] = useState("");
     const [editingTodo, setEditingTodo] = useState(null);
     const [personId, setPersonId] = useState("");
+    const [files, setFiles] = useState([]);
+    const fileInputRef = useRef(null);
 
 
 
@@ -38,37 +40,47 @@ const Task = () => {
             setError("");
 
             if (editingTodo) {
-                // UPDATE via helper
-                await handleUpdateTodo(editingTodo, {
-                    title,
-                    description,
-                    dueDate: dueDate || null,
-                    personId: personId ? Number(personId) : null,
-                });
+                await handleUpdateTodo(
+                    editingTodo,
+                    {
+                        title,
+                        description,
+                        dueDate: dueDate || null,
+                        personId: personId ? Number(personId) : null,
+                    },
+                    files
+                );
             } else {
-                // CREATE
-                const newTodo = await createTodo({
-                    title,
-                    description,
-                    dueDate: dueDate || null,
-                    personId: personId ? Number(personId) : null,
-                });
+                const newTodo = await createTodo(
+                    {
+                        title,
+                        description,
+                        dueDate: dueDate || null,
+                        personId: personId ? Number(personId) : null,
+                    },
+                    files
+                );
 
                 setTodos((prev) => [...prev, newTodo]);
             }
 
-            // clear form + exit edit mode
             setTitle("");
             setDescription("");
             setEditingTodo(null);
             setDueDate("");
             setPersonId("");
+            setFiles([]);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
 
         } catch (err) {
             console.error(err);
             setError(editingTodo ? "Could not update task." : "Could not create task.");
         }
     };
+
 
 
     const handleDeleteTask = async (id) => {
@@ -84,16 +96,16 @@ const Task = () => {
         }
     };
 
-    const handleUpdateTodo = async (todo, updatedFields) => {
+    const handleUpdateTodo = async (todo, updatedFields, filesToUpload = []) => {
         try {
             setError("");
 
             const updatedTodoData = {
                 ...todo,
-                ...updatedFields
+                ...updatedFields,
             };
 
-            const updated = await updateTodo(todo.id, updatedTodoData);
+            const updated = await updateTodo(todo.id, updatedTodoData, filesToUpload);
 
             setTodos((prev) =>
                 prev.map((t) => (t.id === todo.id ? updated : t))
@@ -103,6 +115,14 @@ const Task = () => {
             setError("Could not update task.");
         }
     };
+
+    const handleClearFiles = () => {
+        setFiles([]);              // clear list in state
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";  // clear actual input
+        }
+    };
+
 
     const handleToggleComplete = async (todo) => {
         try {
@@ -205,15 +225,30 @@ const Task = () => {
                                                     className="form-control"
                                                     id="todoAttachments"
                                                     multiple
+                                                    ref={fileInputRef}
+                                                    onChange={(e) => setFiles(Array.from(e.target.files))}  // 👈 NEW
                                                 />
                                                 <button
                                                     className="btn btn-outline-secondary"
                                                     type="button"
+                                                    onClick={handleClearFiles}
                                                 >
                                                     <i className="bi bi-x-lg"></i>
                                                 </button>
+
                                             </div>
-                                            <div className="file-list" id="attachmentPreview"></div>
+                                            <div className="file-list" id="attachmentPreview">
+                                                {files.length > 0 && (
+                                                    <ul className="list-unstyled mb-0">
+                                                        {files.map((file) => (
+                                                            <li key={file.name} className="small text-muted">
+                                                                {file.name}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+
                                         </div>
                                         <div className="d-grid gap-2 d-md-flex justify-content-md-end">
                                             <button type="submit" className="btn btn-primary">
@@ -277,8 +312,8 @@ const Task = () => {
                                                                     <small
                                                                         className={
                                                                             new Date(todo.dueDate) < new Date()
-                                                                                ? "text-danger me-2"   // overdue = red text
-                                                                                : "text-muted me-2"    // future = grey text
+                                                                                ? "text-danger me-2"
+                                                                                : "text-muted me-2"
                                                                         }
                                                                     >
                                                                         <i className="bi bi-calendar-event"></i>{" "}
@@ -295,6 +330,13 @@ const Task = () => {
                                                                                 : `Person #${todo.personId}`}
                                                                             </span>
                                                                             )}
+                                                                    {todo.numberOfAttachments > 0 && (
+                                                                    <span className="badge bg-light text-muted border me-2">
+                                                                        <i className="bi bi-paperclip"></i>{" "}
+                                                                        {todo.numberOfAttachments} attachment
+                                                                        {todo.numberOfAttachments !== 1 && "s"}
+                                                                        </span>
+                                                                        )}
                                                                             <span
                                                                         className={
                                                                         todo.completed
@@ -304,7 +346,6 @@ const Task = () => {
                                                                             >
                                                                             {todo.completed ? "Completed" : "Pending"}
                                                                         </span>
-
                                                             </div>
                                                         </div>
                                                         <div className="btn-group ms-3">

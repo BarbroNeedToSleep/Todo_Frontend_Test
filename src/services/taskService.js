@@ -29,7 +29,8 @@ export const createTodo = async (todoData, files = []) => {
     // Backend expects a STRING part named "todo"
     formData.append("todo", JSON.stringify(todoData));
 
-    // We'll ignore files for now
+    // NOW we add file uploads 🟦
+    files.forEach((file) => formData.append("files", file));
 
     const res = await api.post("/todo", formData);
     return res.data;
@@ -41,8 +42,8 @@ export const updateTodo = async (id, todoData, files = []) => {
     // Same backend requirement as createTodo
     formData.append("todo", JSON.stringify(todoData));
 
-    // If we add attachments later, they'll go here:
-    // files.forEach((file) => formData.append("files", file));
+    // Add attachments (new ones only)
+    files.forEach((file) => formData.append("files", file));
 
     const res = await api.put(`/todo/${id}`, formData);
     return res.data;
